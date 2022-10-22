@@ -13,8 +13,7 @@ include "StandaloneDialect.td"
 include "/mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
-def Standalone_FooOp : Standalone_Op<"foo", [NoSideEffect,
-                                             SameOperandsAndResultType]> {
+def Standalone_FooOp : Standalone_Op<"foo", [SameOperandsAndResultType]> {
     let summary = "Illustrates how to define an operation.";
     let description = [{
         The `standalone.foo` operation illustrates how to define a new

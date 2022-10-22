@@ -10,6 +10,9 @@ project(standalone-dialect LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to conform to")
 
+message(STATUS "Params set as: LLVM_EXTERNAL_LIT=${LLVM_EXTERNAL_LIT}")
+message(STATUS "Params set as: MLIR_DIR=${MLIR_DIR}")
+
 find_package(MLIR REQUIRED CONFIG)
 
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
@@ -37,7 +40,14 @@ set(LLVM_LIT_ARGS "-sv" CACHE STRING "lit default options")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 include(sanitizers)
 
+# tasks:
+# ask MLIR to translate .td files
+# add all includes
+# build all libraries (lib)
+# link library to the standalone-opt
+
 add_subdirectory(include)
 add_subdirectory(lib)
 add_subdirectory(test)
 add_subdirectory(standalone-opt)
+add_subdirectory(test-compiler)
