@@ -67,14 +67,14 @@ static void printBinaryOp(mlir::OpAsmPrinter &printer, mlir::Operation *op) {
   printer.printFunctionalType(op->getOperandTypes(), op->getResultTypes());
 }
 
+// ============================================================================
+
 void ConstantOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                        double value) {
   auto dataType = RankedTensorType::get({}, builder.getF64Type());
   auto dataAttribute = DenseElementsAttr::get(dataType, value);
   ConstantOp::build(builder, state, dataType, dataAttribute);
 }
-
-// ============================================================================
 
 /**
  * Verifier for the constant operation. This corresponds to the

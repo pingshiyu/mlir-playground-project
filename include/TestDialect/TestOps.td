@@ -23,6 +23,8 @@ def Test_ConstantOp : Test_Op<"constant", [Pure]> {
     // generate (mlir::LogicalResults verify()) declaration. Need to implement the function in the .cpp
     let hasVerifier = 1;
 
+    let hasCustomAssemblyFormat = 0;
+
     // Factory methods. Here defined are 2. There's also an autogenerataed `build` method
     let builders = [
         OpBuilder<(ins "DenseElementsAttr":$value), [{

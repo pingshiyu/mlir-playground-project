@@ -25,7 +25,10 @@ The above code will need to be written separately.
 * Op vs Operation class: Op has a pointer to an Operation*. The Operation object contains the common methods and attributes shared by all operations, and Op contains the operation-specific information. One can always cast between Op and Operation* types.
     * Outstanding: Adaptors in Op classes, what does it to?
 * build: factory methods for constructing Op objects
-* assemblyFormat: specify our own way to print out operations
+* hasCustomAssemblyFormat: specify our own way to print out operations. This is cosmetic. Few options here:
+    1. Nothing: just use the default MLIR object printing method
+    2. let assemblyFormat = `format`: `format` gives a shorthand to custom pretty print your operation
+    3. hasCustomAssemblyFormat = 1: you need to specify the Op::print and Op::parse functions in the .cpp
 
 # An out-of-tree dialect template for MLIR
 
