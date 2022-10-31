@@ -28,7 +28,7 @@ static cl::opt<std::string> inputFilename(cl::Positional,
                                           cl::value_desc("filename"));
 namespace {
   enum InputType { Test, MLIR };
-  enum Action { None, DumpAST, DumpMLIR };
+  enum Action { None, DumpAST, DumpMLIR, DumpTest };
 } // namespace
 
 static cl::opt<enum InputType> inputType(
@@ -40,7 +40,8 @@ static cl::opt<enum InputType> inputType(
 static cl::opt<enum Action>
     emitAction("emit", cl::desc("Select the kind of output desired"),
                cl::values(clEnumValN(DumpAST, "ast", "output the AST dump")),
-               cl::values(clEnumValN(DumpMLIR, "mlir", "output MLIR")));
+               cl::values(clEnumValN(DumpMLIR, "mlir", "output MLIR")),
+               cl::values(clEnumValN(DumpTest, "test", "output Test dialect")));
 
 // ===========================================================================
 
@@ -69,28 +70,36 @@ int dumpAST() {
   return 0;
 }
 
+int dumpTestDialect() {
+  // Get the context and load our dialect in
+  mlir::MLIRContext context;
+  context.getOrLoadDialect<mlir::test::TestDialect>();
+
+  auto moduleAST = parseInputFile(inputFilename);
+  if (!moduleAST)
+    return 6;
+  
+  // generate a MLIR Module object from AST. Convert everything into Ops
+  mlir::OwningOpRef<mlir::ModuleOp> module = mlirGen(context, *moduleAST);
+  if (!module)
+    return 1;
+
+  // print out to stderr
+  module->dump();
+  return 0;
+}
+
 int dumpMLIR() {
   // Get the context and load our dialect in
   mlir::MLIRContext context;
   context.getOrLoadDialect<mlir::test::TestDialect>();
 
-  // Handle '.test' input to the compiler.
-  if (inputType != InputType::MLIR && !llvm::StringRef(inputFilename).endswith(".mlir")) {
-    auto moduleAST = parseInputFile(inputFilename);
-    if (!moduleAST)
-      return 6;
-    
-    // generate a MLIR Module object from AST. Convert everything into Ops
-    mlir::OwningOpRef<mlir::ModuleOp> module = mlirGen(context, *moduleAST);
-    if (!module)
-      return 1;
-
-    // print out to stderr
-    module->dump();
-    return 0;
+  // File type needs to be .mlir!
+  if (llvm::StringRef(inputFilename).endswith(".mlir")) {
+    llvm::errs() << "Gotta be a .MLIR file! \n";
+    return -1;
   }
-
-  // Otherwise, the input is '.mlir'.
+  
   llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileOrErr =
       llvm::MemoryBuffer::getFileOrSTDIN(inputFilename);
   if (std::error_code ec = fileOrErr.getError()) {
@@ -125,6 +134,8 @@ int main(int argc, char **argv) {
       return dumpAST();
     case Action::DumpMLIR:
       return dumpMLIR();
+    case Action::DumpTest:
+      return dumpTestDialect();
     default:
       llvm::errs() << "No action specified (parsing only?), use -emit=<action>\n";
   }

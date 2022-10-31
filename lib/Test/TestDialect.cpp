@@ -8,7 +8,6 @@
 
 #include "TestDialect/TestDialect.h"
 #include "TestDialect/TestOps.h"
-#include "TestDialect/TestOpsDialect.cpp.inc"
 
 using namespace mlir;
 using namespace mlir::test;

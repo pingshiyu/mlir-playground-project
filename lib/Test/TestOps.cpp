@@ -11,6 +11,9 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/FunctionImplementation.h"
 
+#define GET_OP_CLASSES
+#include "TestDialect/TestOps.cpp.inc"
+
 namespace mlir { namespace test {
 
 // ============================================================================
@@ -62,6 +65,13 @@ static void printBinaryOp(mlir::OpAsmPrinter &printer, mlir::Operation *op) {
 
   // Otherwise, print a functional type.
   printer.printFunctionalType(op->getOperandTypes(), op->getResultTypes());
+}
+
+void ConstantOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                       double value) {
+  auto dataType = RankedTensorType::get({}, builder.getF64Type());
+  auto dataAttribute = DenseElementsAttr::get(dataType, value);
+  ConstantOp::build(builder, state, dataType, dataAttribute);
 }
 
 // ============================================================================
@@ -242,7 +252,5 @@ mlir::LogicalResult TransposeOp::verify() {
   }
   return mlir::success();
 }
-
-#include "TestDialect/TestOps.cpp.inc"
 
 }} // namespace mlir::test
