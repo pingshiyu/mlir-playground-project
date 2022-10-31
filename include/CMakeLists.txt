@@ -3,3 +3,4 @@ set_target_properties(Toy PROPERTIES FOLDER Examples) # FOLDER=Examples
 
 include_directories(ast/)
 add_subdirectory(Standalone)
+add_subdirectory(TestDialect)

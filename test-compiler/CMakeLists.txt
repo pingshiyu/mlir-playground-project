@@ -9,7 +9,7 @@ get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 # get_target_property(MLIRSupport_Sources MLIRSupport SOURCE_DIR)
 # message(STATUS "sources of MLIRSupport=${MLIRSupport_Sources}")
 
-# Build 2 binaries: one for optimisation within MLIR, the other to also compile .toy scripts.
+# Build 2 binaries: one for optimisation within MLIR, the other to also compile .test scripts.
 add_llvm_executable(test-compiler test-compiler.cpp)
 llvm_update_compile_flags(test-compiler)
 
@@ -21,6 +21,11 @@ set(LIBS
         MLIRPass
         MLIRStandalone
         MLIRSupport
+        MLIRAnalysis
+        MLIRIR
+        MLIRSideEffectInterfaces
+        MLIRTransforms
+        MLIRTest
         ast
         )
 

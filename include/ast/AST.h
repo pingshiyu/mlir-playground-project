@@ -1,4 +1,4 @@
-//===- AST.h - Node definition for the Toy AST ----------------------------===//
+//===- AST.h - Node definition for the Test AST ----------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,14 +6,14 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the AST for the Toy language. It is optimized for
+// This file implements the AST for the Test language. It is optimized for
 // simplicity, not efficiency. The AST forms a tree structure where each node
 // references its children using std::unique_ptr<>.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TOY_AST_H
-#define TOY_AST_H
+#ifndef TEST_AST_H
+#define TEST_AST_H
 
 #include "ast/Lexer.h"
 
@@ -23,7 +23,7 @@
 #include <utility>
 #include <vector>
 
-namespace toy {
+namespace test {
 
 /// A variable type with shape information.
 struct VarType {
@@ -240,6 +240,6 @@ public:
 
 void dump(ModuleAST &);
 
-} // namespace toy
+} // namespace test
 
-#endif // TOY_AST_H
+#endif // TEST_AST_H

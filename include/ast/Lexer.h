@@ -1,4 +1,4 @@
-//===- Lexer.h - Lexer for the Toy language -------------------------------===//
+//===- Lexer.h - Lexer for the Test language -------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,19 +6,19 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements a simple Lexer for the Toy language.
+// This file implements a simple Lexer for the Test language.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TOY_LEXER_H
-#define TOY_LEXER_H
+#ifndef TEST_LEXER_H
+#define TEST_LEXER_H
 
 #include "llvm/ADT/StringRef.h"
 
 #include <memory>
 #include <string>
 
-namespace toy {
+namespace test {
 
 /// Structure definition a location in a file.
 struct Location {
@@ -227,6 +227,6 @@ private:
   }
   const char *current, *end;
 };
-} // namespace toy
+} // namespace test
 
-#endif // TOY_LEXER_H
+#endif // TEST_LEXER_H

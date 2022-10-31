@@ -1,0 +1,19 @@
+  Module:
+    Function 
+      Proto 'main' @../test/TestDialect/test-script.toy:1:1
+      Params: []
+      Block {
+        VarDecl a<> @../test/TestDialect/test-script.toy:4:3
+          Literal: <2, 3>[ <3>[ 1.000000e+00, 2.000000e+00, 3.000000e+00], <3>[ 4.000000e+00, 5.000000e+00, 6.000000e+00]] @../test/TestDialect/test-script.toy:4:11
+        VarDecl b<2, 3> @../test/TestDialect/test-script.toy:8:3
+          Literal: <6>[ 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00] @../test/TestDialect/test-script.toy:8:17
+        Print [ @../test/TestDialect/test-script.toy:12:3
+          BinOp: * @../test/TestDialect/test-script.toy:12:24
+            Call 'transpose' [ @../test/TestDialect/test-script.toy:12:9
+              var: a @../test/TestDialect/test-script.toy:12:19
+            ]
+            Call 'transpose' [ @../test/TestDialect/test-script.toy:12:24
+              var: b @../test/TestDialect/test-script.toy:12:34
+            ]
+        ]
+      } // Block

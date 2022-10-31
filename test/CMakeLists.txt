@@ -8,7 +8,7 @@ configure_lit_site_cfg(
 set(STANDALONE_OPT_TEST_DEPENDS
         FileCheck count not
         standalone-opt
-        toy-compile # HACK: piggyback on the standalone-opt to build our alternative compiler too
+        test-compiler # HACK: piggyback on the standalone-opt to build our alternative compiler too
         )
 
 add_lit_testsuite(check-standalone-opt "Running the standalone-opt regression tests"

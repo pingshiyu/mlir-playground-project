@@ -1,4 +1,4 @@
-//===- Parser.h - Toy Language Parser -------------------------------------===//
+//===- Parser.h - Test Language Parser -------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,13 +6,13 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the parser for the Toy language. It processes the Token
+// This file implements the parser for the Test language. It processes the Token
 // provided by the Lexer and returns an AST.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TOY_PARSER_H
-#define TOY_PARSER_H
+#ifndef TEST_PARSER_H
+#define TEST_PARSER_H
 
 #include "ast/AST.h"
 #include "ast/Lexer.h"
@@ -26,9 +26,9 @@
 #include <utility>
 #include <vector>
 
-namespace toy {
+namespace test {
 
-/// This is a simple recursive parser for the Toy language. It produces a well
+/// This is a simple recursive parser for the Test language. It produces a well
 /// formed AST from a stream of Token supplied by the Lexer. No semantic checks
 /// or symbol resolution is performed. For example, variables are referenced by
 /// string and the code could reference an undeclared variable and the parsing
@@ -484,6 +484,6 @@ private:
   }
 };
 
-} // namespace toy
+} // namespace test
 
-#endif // TOY_PARSER_H
+#endif // TEST_PARSER_H
