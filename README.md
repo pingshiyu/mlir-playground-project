@@ -13,8 +13,10 @@ With the syntax, the framework provides easy ways to construct tooling / useful 
 
 ## What doesn't MLIR provide?
 Missing from a full compiler are these components:
-- Lexer & parser into ASTs, or anyhow a way to obtain/reach these MLIR objects we defined to represent the language (but LLVM has tools for building this) *Question: what do these MLIR objects look like? E.g. how do they compose?*
-- Custom implementation for generated code blobs. E.g. specific type verifiers, custom factories (builders). *Question: when will these verifiers be called?*
+- Lexer & parser into ASTs, or anyhow a way to obtain/reach these MLIR objects we defined to represent the language (but LLVM has tools for building this) 
+    - *Question: what do these MLIR objects look like? E.g. how do they compose?*
+- Custom implementation for generated code blobs. E.g. specific type verifiers, custom factories (builders).
+    - *Question: when will these verifiers be called?*
 - 
 
 The above code will need to be written separately.
