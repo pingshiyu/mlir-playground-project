@@ -261,7 +261,7 @@ def ReturnOp : Test_Op<"return", [Pure, HasParent<"FuncOp">,
 // TransposeOp
 //===----------------------------------------------------------------------===//
 
-def TransposeOp : Test_Op<"transpose"> {
+def TransposeOp : Test_Op<"transpose", [Pure]> {
   let summary = "transpose operation";
 
   let arguments = (ins F64Tensor:$input);
