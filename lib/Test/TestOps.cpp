@@ -258,7 +258,6 @@ mlir::LogicalResult TransposeOp::verify() {
 
 void TransposeOp::getCanonicalizationPatterns(
   mlir::RewritePatternSet& patterns, mlir::MLIRContext* context) {
-    std::cout << "adding double transpose optimisation to context" << std::endl;
     patterns.add<RemoveRedundantTranspose>(context);
 }
 
