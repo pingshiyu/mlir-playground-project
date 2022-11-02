@@ -3,6 +3,8 @@
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Transforms/Passes.h"
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/CommandLine.h"
@@ -15,7 +17,10 @@
 
 #include "TestDialect/MLIRGen.h"
 #include "TestDialect/TestDialect.h"
-#include "TestDialect/TestOpsDialect.cpp.inc"
+#include "TestDialect/TestOps.h"
+
+
+#include <iostream>
 
 using namespace test;
 namespace cl = llvm::cl;
@@ -71,6 +76,7 @@ int dumpAST() {
 }
 
 int dumpTestDialect() {
+  std::cout << "test dialect processing" << std::endl;
   // Get the context and load our dialect in
   mlir::MLIRContext context;
   context.getOrLoadDialect<mlir::test::TestDialect>();
@@ -83,6 +89,15 @@ int dumpTestDialect() {
   mlir::OwningOpRef<mlir::ModuleOp> module = mlirGen(context, *moduleAST);
   if (!module)
     return 1;
+
+  // optimise our test dialect
+  mlir::PassManager pm(&context);
+  // functions are the "top level" operation in our language
+  // nested meaning we will recursively apply the optimisation to the whole program
+  pm.addNestedPass<mlir::test::FuncOp>(mlir::createCanonicalizerPass());
+  if (mlir::failed(pm.run(*module))) {
+    return 4;
+  }
 
   // print out to stderr
   module->dump();

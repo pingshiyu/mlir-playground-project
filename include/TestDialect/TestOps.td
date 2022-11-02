@@ -23,7 +23,9 @@ def Test_ConstantOp : Test_Op<"constant", [Pure]> {
     // generate (mlir::LogicalResults verify()) declaration. Need to implement the function in the .cpp
     let hasVerifier = 1;
 
-    let hasCustomAssemblyFormat = 0;
+    let assemblyFormat = [{
+      attr-dict `to` type(results)
+    }];
 
     // Factory methods. Here defined are 2. There's also an autogenerataed `build` method
     let builders = [
@@ -276,6 +278,9 @@ def TransposeOp : Test_Op<"transpose"> {
 
   // Invoke a static verify method to verify this transpose operation.
   let hasVerifier = 1;
+
+  // Canonicalizer defined for this operation: need to implement getCanonicalizationPatterns()
+  let hasCanonicalizer = 1;
 }
 
 #endif // TEST_OPS

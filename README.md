@@ -10,13 +10,14 @@ This is going to be quite messy. Using this repo to learn:
 MLIR is a convenient way to specify language constructs, and associated optimisations / verification on those constructs. By constructs, we mean the syntax of the language. This syntax is represented as C++ objects. 
 
 With the syntax, the framework provides easy ways to construct tooling / useful functionalities around it. These can include things like type checking (verifier), rewrites (optimisations), or printers.
+    - *Question: what does the default verifiers do?*
 
 ## What doesn't MLIR provide?
 Missing from a full compiler are these components:
 - Lexer & parser into ASTs, or anyhow a way to obtain/reach these MLIR objects we defined to represent the language (but LLVM has tools for building this) 
     - *Question: what do these MLIR objects look like? E.g. how do they compose?*
 - Custom implementation for generated code blobs. E.g. specific type verifiers, custom factories (builders).
-    - *Question: when will these verifiers be called?*
+    - *Question: when will these verifiers be called?* 
 - 
 
 The above code will need to be written separately.
@@ -26,11 +27,15 @@ The above code will need to be written separately.
 * MLIRGen: conventional name, file used for generating MLIR objects from ASTs
 * Op vs Operation class: Op has a pointer to an Operation*. The Operation object contains the common methods and attributes shared by all operations, and Op contains the operation-specific information. One can always cast between Op and Operation* types.
     * Outstanding: Adaptors in Op classes, what does it to?
+        * Answer: These adaptors are used in the Op classes implementations.
 * build: factory methods for constructing Op objects
 * hasCustomAssemblyFormat: specify our own way to print out operations. This is cosmetic. Few options here:
     1. Nothing: just use the default MLIR object printing method
     2. let assemblyFormat = `format`: `format` gives a shorthand to custom pretty print your operation
     3. hasCustomAssemblyFormat = 1: you need to specify the Op::print and Op::parse functions in the .cpp
+* parser: its job is to parse MLIR-style strings back into MLIR objects. Parsers for custom formats can be specified by the DSL if it is sufficiently simple. Otherwise custom code can be written too for the parser. 
+* Operand: operation arguments which are produced at runtime by other operations.
+* Attributes: operation arguments which are compile time constants 
 
 # An out-of-tree dialect template for MLIR
 

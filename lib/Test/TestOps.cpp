@@ -8,8 +8,11 @@
 
 #include "TestDialect/TestDialect.h"
 #include "TestDialect/TestOps.h"
+
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/FunctionImplementation.h"
+
+#include "TestDialect/Optimisations.h"
 
 #define GET_OP_CLASSES
 #include "TestDialect/TestOps.cpp.inc"
@@ -251,6 +254,12 @@ mlir::LogicalResult TransposeOp::verify() {
            << "expected result shape to be a transpose of the input";
   }
   return mlir::success();
+}
+
+void TransposeOp::getCanonicalizationPatterns(
+  mlir::RewritePatternSet& patterns, mlir::MLIRContext* context) {
+    std::cout << "adding double transpose optimisation to context" << std::endl;
+    patterns.add<RemoveRedundantTranspose>(context);
 }
 
 }} // namespace mlir::test
