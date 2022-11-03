@@ -16,12 +16,11 @@ With the syntax, the framework provides easy ways to construct tooling / useful 
 Missing from a full compiler are these components:
 - Lexer & parser into ASTs, or anyhow a way to obtain/reach these MLIR objects we defined to represent the language (but LLVM has tools for building this) 
     - *Question: what do these MLIR objects look like? E.g. how do they compose?*
+    - *Answer:* Operations are the base unit for organisation. Roughly: Operations has *Regions*, which are just containers for *List Blocks*. These *Blocks* contains lists of *Operations* again. Can view *Operations* as a function + its body, *Regions* as the function body container, and *Blocks* as the function body.
 - Custom implementation for generated code blobs. E.g. specific type verifiers, custom factories (builders).
     - *Question: when will these verifiers be called?* 
-- 
 
 The above code will need to be written separately.
-
 
 ## Keywords & concepts
 * MLIRGen: conventional name, file used for generating MLIR objects from ASTs
@@ -35,7 +34,8 @@ The above code will need to be written separately.
     3. hasCustomAssemblyFormat = 1: you need to specify the Op::print and Op::parse functions in the .cpp
 * parser: its job is to parse MLIR-style strings back into MLIR objects. Parsers for custom formats can be specified by the DSL if it is sufficiently simple. Otherwise custom code can be written too for the parser. 
 * Operand: operation arguments which are produced at runtime by other operations.
-* Attributes: operation arguments which are compile time constants 
+* Attributes: operation arguments which are compile time constant
+* Rewrites: Rewrites can be requested by setting `let hasCanonicalizer = 1;` in the Op definition. This allows it to register rewrites (which are classes inheriting the `: mlir::OpRewritePattern<OpType>` interface, to be implemented), and these will be called later on by a `PassManager`, applying these rewrites in a processes called `Canonicalization`.
 
 # An out-of-tree dialect template for MLIR
 
