@@ -110,7 +110,7 @@ int dumpMLIR() {
   context.getOrLoadDialect<mlir::test::TestDialect>();
 
   // File type needs to be .mlir!
-  if (llvm::StringRef(inputFilename).endswith(".mlir")) {
+  if (!llvm::StringRef(inputFilename).endswith(".mlir")) {
     llvm::errs() << "Gotta be a .MLIR file! \n";
     return -1;
   }

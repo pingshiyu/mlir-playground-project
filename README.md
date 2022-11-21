@@ -47,7 +47,7 @@ standalone `opt`-like tool to operate on that dialect.
 This setup assumes that you have built LLVM and MLIR in `$BUILD_DIR` and installed them to `$PREFIX`. To build and launch the tests, run
 ```sh
 mkdir build && cd build
-cmake -G Ninja .. -DMLIR_DIR=$PREFIX/lib/cmake/mlir -DLLVM_EXTERNAL_LIT=$BUILD_DIR/bin/llvm-lit
+cmake -G Ninja .. -DMLIR_DIR=$PREFIX/lib/cmake/mlir -DLLVM_EXTERNAL_LIT=$BUILD_DIR/bin/llvm-lit -DUSE_SANITIZER="Address;Undefined"
 cmake --build . --target check-standalone-opt
 ```
 To build the documentation from the TableGen description of the dialect
