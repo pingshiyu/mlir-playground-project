@@ -36,6 +36,21 @@ The above code will need to be written separately.
 * Operand: operation arguments which are produced at runtime by other operations.
 * Attributes: operation arguments which are compile time constant
 * Rewrites: Rewrites can be requested by setting `let hasCanonicalizer = 1;` in the Op definition. This allows it to register rewrites (which are classes inheriting the `: mlir::OpRewritePattern<OpType>` interface, to be implemented), and these will be called later on by a `PassManager`, applying these rewrites in a processes called `Canonicalization`.
+* Dialect conversion framework: comprised of three parts - 
+    1. Target language. This is defined by specifying sets of "legal" and "illegal" constructs to have in the target language
+    2. Rewrite patterns. Specifies how to transform from source to target language
+    3. Type converter: convert types of block arguments
+    * The rewriter will then apply the transformations until the "illegal" language no longer exists
+* Mixing dialects. In a framework where we have multiple languages that can be mixed, the construct's interactions needs to be handled. The MLIR documentation suggests 3 ways:
+    1. Generate a `load` function to turn the source dialect operations we want ot keep into a `value` in the target dialect.
+    2. Create a version of the source dialect operation in the target dialect.
+    3. Add functionality to the source dialect operation so that it's able to handle the target operation too.
+
+# Validating MLIR transformations
+To validate a "mixin" translation: a translation Seems like it might be sufficient to:
+* Validate individual optimisations
+* Validate the "mixed" language - i.e. language with dummy constructs not touched by the current optimisation. 
+
 
 # An out-of-tree dialect template for MLIR
 

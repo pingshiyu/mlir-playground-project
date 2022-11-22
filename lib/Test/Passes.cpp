@@ -92,6 +92,6 @@ struct ShapeInferencePass
 } // namespace
 
 /// Create a Shape Inference pass.
-std::unique_ptr<mlir::Pass> mlir::createShapeInferencePass() {
+std::unique_ptr<mlir::Pass> mlir::test::createShapeInferencePass() {
   return std::make_unique<ShapeInferencePass>();
 }

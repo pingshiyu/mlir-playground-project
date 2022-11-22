@@ -1,10 +1,14 @@
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/InitAllDialects.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/Passes.h"
+
+// affine optimisations
+#include "mlir/Dialect/Affine/Passes.h"
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/CommandLine.h"
@@ -34,6 +38,8 @@ static cl::opt<std::string> inputFilename(cl::Positional,
                                           cl::value_desc("filename"));
 
 static cl::opt<bool> doOpt("opt", cl::desc("Apply optimisations?"));
+static cl::opt<bool> doShapeInference("opt-shape", cl::desc("Apply shape optimisations?"));
+static cl::opt<bool> doAffineLowering("opt-affine", cl::desc("Lower to and apply affine optimisations?"));
 
 namespace {
   enum InputType { Test, MLIR };
@@ -96,18 +102,35 @@ int dumpTestDialect() {
 
   // optimise our test dialect
   mlir::PassManager pm(&context);
-  // functions are the "top level" operation in our language
-  // nested meaning we will recursively apply the optimisation to the whole program
-  pm.addPass(mlir::createInlinerPass());
 
-  // Now that there is only one function, we can infer the shapes of each of
-  // the operations.
-  mlir::OpPassManager &optPM = pm.nest<mlir::test::FuncOp>();
-  optPM.addPass(mlir::createShapeInferencePass());
-  optPM.addPass(mlir::createCanonicalizerPass());
-  optPM.addPass(mlir::createCSEPass());
+  if (doShapeInference) {
+    // functions are the "top level" operation in our language
+    // nested meaning we will recursively apply the optimisation to the whole program
+    pm.addPass(mlir::createInlinerPass());
 
-  if (doOpt && mlir::failed(pm.run(*module))) {
+    // Now that there is only one function, we can infer the shapes of each of
+    // the operations.
+    mlir::OpPassManager &optPM = pm.nest<mlir::test::FuncOp>();
+    optPM.addPass(mlir::test::createShapeInferencePass());
+    optPM.addPass(mlir::createCanonicalizerPass()); // simplify
+    optPM.addPass(mlir::createCSEPass());
+  }
+
+  if (doAffineLowering) {
+    pm.addPass(mlir::test::createLowerToAffinePass());
+
+    // Add a few cleanups post lowering.
+    mlir::OpPassManager &optPM = pm.nest<mlir::func::FuncOp>();
+    optPM.addPass(mlir::createCanonicalizerPass());
+    optPM.addPass(mlir::createCSEPass());
+
+    if (doOpt) {
+      optPM.addPass(mlir::createLoopFusionPass());
+      optPM.addPass(mlir::createAffineScalarReplacementPass());
+    }
+  }
+
+  if (mlir::failed(pm.run(*module))) {
     return 4;
   }
 

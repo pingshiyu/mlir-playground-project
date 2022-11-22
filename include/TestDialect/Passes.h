@@ -3,10 +3,14 @@
 
 #include "mlir/Pass/Pass.h"
 
-namespace mlir { 
+namespace mlir { namespace test {
 
+// lower Test dialect to Affine dialect
+std::unique_ptr<mlir::Pass> createLowerToAffinePass();
+
+// Inline functions and specialise to call site's shapes
 std::unique_ptr<mlir::Pass> createShapeInferencePass();
 
-}
+}}
 
 #endif // TEST_SHAPE_INFERENCE_PASS

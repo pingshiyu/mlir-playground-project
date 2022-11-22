@@ -13,6 +13,7 @@ add_mlir_dialect_library(MLIRTest
         Optimisations.cpp
         Interfaces.cpp
         Passes.cpp
+        LowerToAffineLoops.cpp
 
         ADDITIONAL_HEADER_DIRS
         ${PROJECT_SOURCE_DIR}/include/TestDialect
