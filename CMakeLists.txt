@@ -46,6 +46,8 @@ include(sanitizers)
 # build all libraries (lib)
 # link library to the standalone-opt
 
+include_directories(${PROJECT_BINARY_DIR}/lib/Test)
+
 add_subdirectory(include)
 add_subdirectory(lib)
 add_subdirectory(test)

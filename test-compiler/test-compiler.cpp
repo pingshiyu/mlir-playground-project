@@ -18,6 +18,7 @@
 #include "TestDialect/MLIRGen.h"
 #include "TestDialect/TestDialect.h"
 #include "TestDialect/TestOps.h"
+#include "TestDialect/Passes.h"
 
 
 #include <iostream>
@@ -31,22 +32,25 @@ static cl::opt<std::string> inputFilename(cl::Positional,
                                           cl::desc("<input test file>"),
                                           cl::init("-"),
                                           cl::value_desc("filename"));
+
+static cl::opt<bool> doOpt("opt", cl::desc("Apply optimisations?"));
+
 namespace {
   enum InputType { Test, MLIR };
   enum Action { None, DumpAST, DumpMLIR, DumpTest };
 } // namespace
 
 static cl::opt<enum InputType> inputType(
-    "x", cl::init(Test), cl::desc("Decided the kind of output desired"),
+    "input", cl::init(Test), cl::desc("Decided the kind of input desired"),
     cl::values(clEnumValN(Test, "test", "load the input file as a Toy source.")),
-    cl::values(clEnumValN(MLIR, "mlir",
-                          "load the input file as an MLIR file")));
+    cl::values(clEnumValN(MLIR, "mlir", "load the input file as an MLIR file")));
 
 static cl::opt<enum Action>
     emitAction("emit", cl::desc("Select the kind of output desired"),
                cl::values(clEnumValN(DumpAST, "ast", "output the AST dump")),
                cl::values(clEnumValN(DumpMLIR, "mlir", "output MLIR")),
                cl::values(clEnumValN(DumpTest, "test", "output Test dialect")));
+
 
 // ===========================================================================
 
@@ -94,8 +98,16 @@ int dumpTestDialect() {
   mlir::PassManager pm(&context);
   // functions are the "top level" operation in our language
   // nested meaning we will recursively apply the optimisation to the whole program
-  pm.addNestedPass<mlir::test::FuncOp>(mlir::createCanonicalizerPass());
-  if (mlir::failed(pm.run(*module))) {
+  pm.addPass(mlir::createInlinerPass());
+
+  // Now that there is only one function, we can infer the shapes of each of
+  // the operations.
+  mlir::OpPassManager &optPM = pm.nest<mlir::test::FuncOp>();
+  optPM.addPass(mlir::createShapeInferencePass());
+  optPM.addPass(mlir::createCanonicalizerPass());
+  optPM.addPass(mlir::createCSEPass());
+
+  if (doOpt && mlir::failed(pm.run(*module))) {
     return 4;
   }
 

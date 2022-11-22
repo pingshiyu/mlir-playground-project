@@ -12,8 +12,6 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/FunctionImplementation.h"
 
-#include "TestDialect/Optimisations.h"
-
 #define GET_OP_CLASSES
 #include "TestDialect/TestOps.cpp.inc"
 
@@ -131,6 +129,11 @@ mlir::ParseResult AddOp::parse(mlir::OpAsmParser &parser,
 
 void AddOp::print(mlir::OpAsmPrinter &p) { printBinaryOp(p, *this); }
 
+/// Infer the output shape of the MulOp, this is required by the shape inference
+/// interface.
+void AddOp::inferShapes() { getResult().setType(getOperand(0).getType()); }
+
+
 //===----------------------------------------------------------------------===//
 // GenericCallOp
 //===----------------------------------------------------------------------===//
@@ -143,6 +146,16 @@ void GenericCallOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
   state.addAttribute("callee",
                      mlir::SymbolRefAttr::get(builder.getContext(), callee));
 }
+
+/// Return the callee of the generic call operation, this is required by the
+/// call interface.
+CallInterfaceCallable GenericCallOp::getCallableForCallee() {
+  return (*this)->getAttrOfType<SymbolRefAttr>("callee");
+}
+
+/// Get the argument operands to the called function, this is required by the
+/// call interface.
+Operation::operand_range GenericCallOp::getArgOperands() { return getInputs(); }
 
 //===----------------------------------------------------------------------===//
 // FuncOp
@@ -177,6 +190,13 @@ void FuncOp::print(mlir::OpAsmPrinter &p) {
                                                  /*isVariadic=*/false);
 }
 
+/// Returns the region on the function operation that is callable.
+Region *FuncOp::getCallableRegion() { return &getBody(); }
+
+/// Returns the results types that the callable region produces when
+/// executed.
+ArrayRef<Type> FuncOp::getCallableResults() { return getFunctionType().getResults(); }
+
 //===----------------------------------------------------------------------===//
 // MulOp
 //===----------------------------------------------------------------------===//
@@ -193,6 +213,11 @@ mlir::ParseResult MulOp::parse(mlir::OpAsmParser &parser,
 }
 
 void MulOp::print(mlir::OpAsmPrinter &p) { printBinaryOp(p, *this); }
+
+/// Infer the output shape of the MulOp, this is required by the shape inference
+/// interface.
+void MulOp::inferShapes() { getResult().setType(getOperand(0).getType()); }
+
 
 //===----------------------------------------------------------------------===//
 // ReturnOp
@@ -256,9 +281,37 @@ mlir::LogicalResult TransposeOp::verify() {
   return mlir::success();
 }
 
-void TransposeOp::getCanonicalizationPatterns(
-  mlir::RewritePatternSet& patterns, mlir::MLIRContext* context) {
-    patterns.add<RemoveRedundantTranspose>(context);
+/// Infer the output shape of the MulOp, this is required by the shape inference
+/// interface.
+void TransposeOp::inferShapes() {
+  auto arrayTy = getOperand().getType().cast<RankedTensorType>();
+  SmallVector<int64_t, 2> dims(llvm::reverse(arrayTy.getShape()));
+  getResult().setType(RankedTensorType::get(dims, arrayTy.getElementType()));
 }
+
+
+//===----------------------------------------------------------------------===//
+// CastOp
+//===----------------------------------------------------------------------===//
+
+/// Returns true if the given set of input and result types are compatible with
+/// this cast operation. This is required by the `CastOpInterface` to verify
+/// this operation and provide other additional utilities.
+bool CastOp::areCastCompatible(TypeRange inputs, TypeRange outputs) {
+  if (inputs.size() != 1 || outputs.size() != 1)
+    return false;
+  // The inputs must be Tensors with the same element type.
+  TensorType input = inputs.front().dyn_cast<TensorType>();
+  TensorType output = outputs.front().dyn_cast<TensorType>();
+  if (!input || !output || input.getElementType() != output.getElementType())
+    return false;
+  // The shape is required to match if both types are ranked.
+  return !input.hasRank() || !output.hasRank() || input == output;
+}
+
+/// Infer the output shape of the MulOp, this is required by the shape inference
+/// interface.
+void CastOp::inferShapes() { getResult().setType(getOperand().getType()); }
+
 
 }} // namespace mlir::test

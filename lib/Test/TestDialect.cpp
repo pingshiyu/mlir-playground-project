@@ -10,6 +10,8 @@
 #include "TestDialect/TestOps.h"
 #include "TestDialect/TestOpsDialect.cpp.inc"
 
+#include "TestDialect/Interfaces.h"
+
 using namespace mlir;
 using namespace mlir::test;
 
@@ -22,5 +24,7 @@ void TestDialect::initialize() {
 #define GET_OP_LIST // Check the file *Ops.cpp.inc. Setting this variable emits a list of variables
 #include "TestDialect/TestOps.cpp.inc"
       >();
+    
+  addInterfaces<TestInlinerInterface>();
 }
 

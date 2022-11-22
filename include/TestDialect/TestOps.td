@@ -1,11 +1,14 @@
 #ifndef TEST_OPS
 #define TEST_OPS
 
-include "TestDialect.td"
+include "TestDialect/TestDialect.td"
 
 include "mlir/Interfaces/SideEffectInterfaces.td" // Pure trait
 include "mlir/IR/FunctionInterfaces.td"
 include "mlir/IR/SymbolInterfaces.td"
+include "mlir/Interfaces/CallInterfaces.td"
+include "mlir/Interfaces/CastInterfaces.td"
+include "TestDialect/Interfaces.td"
 
 // Base Op (~ smart_ptr(Operation * op)) for all Test dialect operations
 class Test_Op<string name, list<Trait> traits = []> : Op<Test_Dialect, name, traits>;
@@ -43,7 +46,7 @@ def Test_ConstantOp : Test_Op<"constant", [Pure]> {
 // AddOp
 //===----------------------------------------------------------------------===//
 
-def AddOp : Test_Op<"add"> {
+def AddOp : Test_Op<"add", [DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "element-wise addition operation";
   let description = [{
     The "add" operation performs element-wise addition between two tensors.
@@ -67,7 +70,8 @@ def AddOp : Test_Op<"add"> {
 //===----------------------------------------------------------------------===//
 
 def FuncOp : Test_Op<"func", [
-    FunctionOpInterface, IsolatedFromAbove, Symbol
+    DeclareOpInterfaceMethods<CallableOpInterface>, FunctionOpInterface,
+    IsolatedFromAbove, Symbol
   ]> {
   let summary = "user defined function operation";
   let description = [{
@@ -115,7 +119,7 @@ def FuncOp : Test_Op<"func", [
 // GenericCallOp
 //===----------------------------------------------------------------------===//
 
-def GenericCallOp : Test_Op<"generic_call"> {
+def GenericCallOp : Test_Op<"generic_call", [DeclareOpInterfaceMethods<CallOpInterface>]> {
   let summary = "generic call operation";
   let description = [{
     Generic calls represent calls to a user defined function that needs to
@@ -154,7 +158,7 @@ def GenericCallOp : Test_Op<"generic_call"> {
 // MulOp
 //===----------------------------------------------------------------------===//
 
-def MulOp : Test_Op<"mul"> {
+def MulOp : Test_Op<"mul", [DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "element-wise multiplication operation";
   let description = [{
     The "mul" operation performs element-wise multiplication between two
@@ -213,6 +217,8 @@ def ReshapeOp : Test_Op<"reshape"> {
   let assemblyFormat = [{
     `(` $input `:` type($input) `)` attr-dict `to` type(results)
   }];
+
+  let hasCanonicalizer = 1;
 }
 
 //===----------------------------------------------------------------------===//
@@ -261,7 +267,7 @@ def ReturnOp : Test_Op<"return", [Pure, HasParent<"FuncOp">,
 // TransposeOp
 //===----------------------------------------------------------------------===//
 
-def TransposeOp : Test_Op<"transpose", [Pure]> {
+def TransposeOp : Test_Op<"transpose", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "transpose operation";
 
   let arguments = (ins F64Tensor:$input);
@@ -282,5 +288,30 @@ def TransposeOp : Test_Op<"transpose", [Pure]> {
   // Canonicalizer defined for this operation: need to implement getCanonicalizationPatterns()
   let hasCanonicalizer = 1;
 }
+
+//===----------------------------------------------------------------------===//
+// CastOp 
+//===----------------------------------------------------------------------===//
+
+def CastOp : Test_Op<"cast", [
+    DeclareOpInterfaceMethods<CastOpInterface>,
+    DeclareOpInterfaceMethods<ShapeInferenceOpInterface>,
+    NoMemoryEffect,
+    SameOperandsAndResultShape]
+  > {
+  let summary = "shape cast operation";
+  let description = [{
+    The "cast" operation converts a tensor from one type to an equivalent type
+    without changing any data elements. The source and destination types
+    must both be tensor types with the same element type. If both are ranked,
+    then shape is required to match. The operation is invalid if converting
+    to a mismatching constant dimension.
+  }];
+
+  let arguments = (ins F64Tensor:$input);
+  let results = (outs F64Tensor:$output);
+  let assemblyFormat = "$input attr-dict `:` type($input) `to` type($output)";
+}
+
 
 #endif // TEST_OPS

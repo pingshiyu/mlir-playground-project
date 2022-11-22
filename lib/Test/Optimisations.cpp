@@ -5,10 +5,16 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Support/LogicalResult.h"
 
-#include "TestOps.h"
+#include "TestDialect/TestOps.h"
 
 using namespace mlir::test;
 
+namespace {
+/// Include the patterns defined in the Declarative Rewrite framework.
+#include "Optimisations.inc"
+} // namespace
+
+/* actually unused v */
 struct RemoveRedundantTranspose : public mlir::OpRewritePattern<TransposeOp> {
     RemoveRedundantTranspose(mlir::MLIRContext *context)
      : OpRewritePattern<TransposeOp>(context, /*benefit=*/1) {}
@@ -27,5 +33,18 @@ struct RemoveRedundantTranspose : public mlir::OpRewritePattern<TransposeOp> {
             return mlir::LogicalResult::success();
     }
 };
+
+void TransposeOp::getCanonicalizationPatterns(
+  mlir::RewritePatternSet& patterns, mlir::MLIRContext* context) {
+    patterns.add<TransposeTransposeOptPattern>(context);
+}
+
+/// Register our patterns as "canonicalization" patterns on the ReshapeOp so
+/// that they can be picked up by the Canonicalization framework.
+void ReshapeOp::getCanonicalizationPatterns(RewritePatternSet &results,
+                                            MLIRContext *context) {
+  results.add<ReshapeReshapeOptPattern, RedundantReshapeOptPattern,
+              FoldConstantReshapeOptPattern>(context);
+}
 
 #endif // TEST_DIALECT_OPTIMISATIONS
