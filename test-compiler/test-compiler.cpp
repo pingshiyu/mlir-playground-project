@@ -10,6 +10,15 @@
 // affine optimisations
 #include "mlir/Dialect/Affine/Passes.h"
 
+// dumping LLVM IR
+#include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
+#include "mlir/Target/LLVMIR/Export.h"
+#include "llvm/Support/TargetSelect.h"
+
+// executing LLVM IR code
+#include "mlir/ExecutionEngine/ExecutionEngine.h"
+#include "mlir/ExecutionEngine/OptUtils.h"
+
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
@@ -40,23 +49,88 @@ static cl::opt<std::string> inputFilename(cl::Positional,
 static cl::opt<bool> doOpt("opt", cl::desc("Apply optimisations?"));
 static cl::opt<bool> doShapeInference("opt-shape", cl::desc("Apply shape optimisations?"));
 static cl::opt<bool> doAffineLowering("opt-affine", cl::desc("Lower to and apply affine optimisations?"));
+static cl::opt<bool> doLlvmLowering("opt-llvm", cl::desc("Lower to LLVM code"));
 
 namespace {
   enum InputType { Test, MLIR };
-  enum Action { None, DumpAST, DumpMLIR, DumpTest };
+  enum Action { None, DumpAST, DumpMLIR, DumpTest, DumpLLVM, RunLLVM };
 } // namespace
 
 static cl::opt<enum InputType> inputType(
     "input", cl::init(Test), cl::desc("Decided the kind of input desired"),
-    cl::values(clEnumValN(Test, "test", "load the input file as a Toy source.")),
+    cl::values(clEnumValN(Test, "test", "load the input file as a Test source.")),
     cl::values(clEnumValN(MLIR, "mlir", "load the input file as an MLIR file")));
 
 static cl::opt<enum Action>
     emitAction("emit", cl::desc("Select the kind of output desired"),
                cl::values(clEnumValN(DumpAST, "ast", "output the AST dump")),
                cl::values(clEnumValN(DumpMLIR, "mlir", "output MLIR")),
-               cl::values(clEnumValN(DumpTest, "test", "output Test dialect")));
+               cl::values(clEnumValN(DumpTest, "test", "output Test dialect")),
+               cl::values(clEnumValN(DumpLLVM, "llvm", "output in LLVM code")),
+               cl::values(clEnumValN(RunLLVM, "run", "run generated LLVM code")));
 
+// ===========================================================================
+
+int dumpLLVMIR(mlir::ModuleOp module) {
+  // Register the translation to LLVM IR with the MLIR context.
+  mlir::registerLLVMDialectTranslation(*module->getContext());
+
+  // Convert the module to LLVM IR in a new LLVM IR context.
+  llvm::LLVMContext llvmContext;
+  auto llvmModule = mlir::translateModuleToLLVMIR(module, llvmContext);
+  if (!llvmModule) {
+    llvm::errs() << "Failed to emit LLVM IR\n";
+    return -1;
+  }
+
+  // Initialize LLVM targets.
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+  mlir::ExecutionEngine::setupTargetTriple(llvmModule.get());
+
+  /// Optionally run an optimization pipeline over the llvm module.
+  auto optPipeline = mlir::makeOptimizingTransformer(
+      /*optLevel=*/doOpt ? 3 : 0, /*sizeLevel=*/0,
+      /*targetMachine=*/nullptr);
+  if (auto err = optPipeline(llvmModule.get())) {
+    llvm::errs() << "Failed to optimize LLVM IR " << err << "\n";
+    return -1;
+  }
+  llvm::errs() << *llvmModule << "\n";
+  return 0;
+}
+
+int runJit(mlir::ModuleOp module) {
+  // Initialize LLVM targets.
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+
+  // Register the translation from MLIR to LLVM IR, which must happen before we
+  // can JIT-compile.
+  mlir::registerLLVMDialectTranslation(*module->getContext());
+
+  // An optimization pipeline to use within the execution engine.
+  auto optPipeline = mlir::makeOptimizingTransformer(
+      /*optLevel=*/doOpt ? 3 : 0, /*sizeLevel=*/0,
+      /*targetMachine=*/nullptr);
+
+  // Create an MLIR execution engine. The execution engine eagerly JIT-compiles
+  // the module.
+  mlir::ExecutionEngineOptions engineOptions;
+  engineOptions.transformer = optPipeline;
+  auto maybeEngine = mlir::ExecutionEngine::create(module, engineOptions);
+  assert(maybeEngine && "failed to construct an execution engine");
+  auto &engine = maybeEngine.get();
+
+  // Invoke the JIT-compiled function.
+  auto invocationResult = engine->invokePacked("main");
+  if (invocationResult) {
+    llvm::errs() << "JIT invocation failed\n";
+    return -1;
+  }
+
+  return 0;
+}
 
 // ===========================================================================
 
@@ -85,7 +159,7 @@ int dumpAST() {
   return 0;
 }
 
-int dumpTestDialect() {
+int dumpTestDialect(const Action action) {
   std::cout << "test dialect processing" << std::endl;
   // Get the context and load our dialect in
   mlir::MLIRContext context;
@@ -117,6 +191,7 @@ int dumpTestDialect() {
   }
 
   if (doAffineLowering) {
+    // note the below only takes objects with shapes, so shape inference is going to be needed prior to this
     pm.addPass(mlir::test::createLowerToAffinePass());
 
     // Add a few cleanups post lowering.
@@ -130,12 +205,19 @@ int dumpTestDialect() {
     }
   }
 
+  if (doLlvmLowering) {
+    pm.addPass(mlir::test::createLowerToLLVMPass());
+  }
+
   if (mlir::failed(pm.run(*module))) {
     return 4;
   }
 
-  // print out to stderr
-  module->dump();
+  // optimisations done. how do we want to emit from here
+  if (action == Action::DumpLLVM) dumpLLVMIR(*module); // raw LLVM IR
+  else if (action == Action::RunLLVM) runJit(*module); // run the code
+  else module->dump(); // print out MLIR
+
   return 0;
 }
 
@@ -185,7 +267,9 @@ int main(int argc, char **argv) {
     case Action::DumpMLIR:
       return dumpMLIR();
     case Action::DumpTest:
-      return dumpTestDialect();
+    case Action::DumpLLVM:
+    case Action::RunLLVM:
+      return dumpTestDialect(emitAction);
     default:
       llvm::errs() << "No action specified (parsing only?), use -emit=<action>\n";
   }

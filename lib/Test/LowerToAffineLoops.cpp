@@ -14,7 +14,7 @@
 using namespace mlir;
 
 //===----------------------------------------------------------------------===//
-// ToyToAffine RewritePatterns
+// TestToAffine RewritePatterns
 //===----------------------------------------------------------------------===//
 
 /// Convert the given TensorType into the corresponding MemRefType.
@@ -80,7 +80,7 @@ static void lowerOpToLoops(Operation *op, ValueRange operands,
 namespace {
 
 //===----------------------------------------------------------------------===//
-// ToyToAffine RewritePatterns: Binary operations
+// TestToAffine RewritePatterns: Binary operations
 //===----------------------------------------------------------------------===//
 
 template <typename BinaryOp, typename LoweredBinaryOp>
@@ -119,7 +119,7 @@ using AddOpLowering = BinaryOpLowering<test::AddOp, arith::AddFOp>;
 using MulOpLowering = BinaryOpLowering<test::MulOp, arith::MulFOp>;
 
 //===----------------------------------------------------------------------===//
-// ToyToAffine RewritePatterns: Constant operations
+// TestToAffine RewritePatterns: Constant operations
 //===----------------------------------------------------------------------===//
 
 struct ConstantOpLowering : public OpRewritePattern<test::ConstantOp> {
@@ -188,7 +188,7 @@ struct ConstantOpLowering : public OpRewritePattern<test::ConstantOp> {
 };
 
 //===----------------------------------------------------------------------===//
-// ToyToAffine RewritePatterns: Func operations
+// TestToAffine RewritePatterns: Func operations
 //===----------------------------------------------------------------------===//
 
 struct FuncOpLowering : public OpConversionPattern<test::FuncOp> {
@@ -219,7 +219,7 @@ struct FuncOpLowering : public OpConversionPattern<test::FuncOp> {
 };
 
 //===----------------------------------------------------------------------===//
-// ToyToAffine RewritePatterns: Print operations
+// TestToAffine RewritePatterns: Print operations
 //===----------------------------------------------------------------------===//
 
 struct PrintOpLowering : public OpConversionPattern<test::PrintOp> {
@@ -237,7 +237,7 @@ struct PrintOpLowering : public OpConversionPattern<test::PrintOp> {
 };
 
 //===----------------------------------------------------------------------===//
-// ToyToAffine RewritePatterns: Return operations
+// TestToAffine RewritePatterns: Return operations
 //===----------------------------------------------------------------------===//
 
 struct ReturnOpLowering : public OpRewritePattern<test::ReturnOp> {
@@ -257,7 +257,7 @@ struct ReturnOpLowering : public OpRewritePattern<test::ReturnOp> {
 };
 
 //===----------------------------------------------------------------------===//
-// ToyToAffine RewritePatterns: Transpose operations
+// TestToAffine RewritePatterns: Transpose operations
 //===----------------------------------------------------------------------===//
 
 struct TransposeOpLowering : public ConversionPattern {
@@ -290,16 +290,16 @@ struct TransposeOpLowering : public ConversionPattern {
 } // namespace
 
 //===----------------------------------------------------------------------===//
-// ToyToAffineLoweringPass
+// TestToAffineLoweringPass
 //===----------------------------------------------------------------------===//
 
 /// This is a partial lowering to affine loops of the toy operations that are
 /// computationally intensive (like matmul for example...) while keeping the
-/// rest of the code in the Toy dialect.
+/// rest of the code in the Test dialect.
 namespace {
-struct ToyToAffineLoweringPass
-    : public PassWrapper<ToyToAffineLoweringPass, OperationPass<ModuleOp>> {
-  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ToyToAffineLoweringPass)
+struct TestToAffineLoweringPass
+    : public PassWrapper<TestToAffineLoweringPass, OperationPass<ModuleOp>> {
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(TestToAffineLoweringPass)
 
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<AffineDialect, func::FuncDialect, memref::MemRefDialect>();
@@ -308,7 +308,7 @@ struct ToyToAffineLoweringPass
 };
 } // namespace
 
-void ToyToAffineLoweringPass::runOnOperation() {
+void TestToAffineLoweringPass::runOnOperation() {
   // The first thing to define is the conversion target. This will define the
   // final target for this lowering.
   ConversionTarget target(getContext());
@@ -319,9 +319,9 @@ void ToyToAffineLoweringPass::runOnOperation() {
   target.addLegalDialect<AffineDialect, BuiltinDialect, arith::ArithDialect,
                          func::FuncDialect, memref::MemRefDialect>();
 
-  // We also define the Toy dialect as Illegal so that the conversion will fail
+  // We also define the Test dialect as Illegal so that the conversion will fail
   // if any of these operations are *not* converted. Given that we actually want
-  // a partial lowering, we explicitly mark the Toy operations that don't want
+  // a partial lowering, we explicitly mark the Test operations that don't want
   // to lower, `toy.print`, as `legal`. `toy.print` will still need its operands
   // to be updated though (as we convert from TensorType to MemRefType), so we
   // only treat it as `legal` if its operands are legal.
@@ -332,7 +332,7 @@ void ToyToAffineLoweringPass::runOnOperation() {
   });
 
   // Now that the conversion target has been defined, we just need to provide
-  // the set of patterns that will lower the Toy operations.
+  // the set of patterns that will lower the Test operations.
   RewritePatternSet patterns(&getContext());
   patterns.add<AddOpLowering, ConstantOpLowering, FuncOpLowering, MulOpLowering,
                PrintOpLowering, ReturnOpLowering, TransposeOpLowering>(
@@ -347,7 +347,7 @@ void ToyToAffineLoweringPass::runOnOperation() {
 }
 
 /// Create a pass for lowering operations in the `Affine` and `Std` dialects,
-/// for a subset of the Toy IR (e.g. matmul).
+/// for a subset of the Test IR (e.g. matmul).
 std::unique_ptr<Pass> mlir::test::createLowerToAffinePass() {
-  return std::make_unique<ToyToAffineLoweringPass>();
+  return std::make_unique<TestToAffineLoweringPass>();
 }
