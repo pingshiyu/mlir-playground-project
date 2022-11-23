@@ -185,6 +185,7 @@ int dumpTestDialect(const Action action) {
     // Now that there is only one function, we can infer the shapes of each of
     // the operations.
     mlir::OpPassManager &optPM = pm.nest<mlir::test::FuncOp>();
+    optPM.addPass(mlir::createCanonicalizerPass());
     optPM.addPass(mlir::test::createShapeInferencePass());
     optPM.addPass(mlir::createCanonicalizerPass()); // simplify
     optPM.addPass(mlir::createCSEPass());
