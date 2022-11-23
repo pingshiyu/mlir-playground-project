@@ -14,6 +14,26 @@ namespace {
 #include "Optimisations.inc"
 } // namespace
 
+/// Fold constants.
+mlir::OpFoldResult ConstantOp::fold(ArrayRef<Attribute> operands) {
+  return getValue();
+}
+
+/// Fold struct constants.
+mlir::OpFoldResult StructConstantOp::fold(ArrayRef<Attribute> operands) {
+  return getValue();
+}
+
+/// Fold simple struct access operations that access into a constant.
+mlir::OpFoldResult StructAccessOp::fold(ArrayRef<Attribute> operands) {
+  auto structAttr = operands.front().dyn_cast_or_null<mlir::ArrayAttr>();
+  if (!structAttr)
+    return nullptr;
+
+  size_t elementIndex = getIndex();
+  return structAttr[elementIndex];
+}
+
 /* actually unused v */
 struct RemoveRedundantTranspose : public mlir::OpRewritePattern<TransposeOp> {
     RemoveRedundantTranspose(mlir::MLIRContext *context)

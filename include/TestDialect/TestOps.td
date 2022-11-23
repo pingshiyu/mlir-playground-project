@@ -15,6 +15,16 @@ include "TestDialect/Interfaces.td"
 // Base Op (~ smart_ptr(Operation * op)) for all Test dialect operations
 class Test_Op<string name, list<Trait> traits = []> : Op<Test_Dialect, name, traits>;
 
+// Provide a definition for the Test StructType for use in ODS. This allows for
+// using StructType in a similar way to Tensor or MemRef. We use `DialectType`
+// to demarcate the StructType as belonging to the Test dialect.
+def Test_StructType :
+    DialectType<Test_Dialect, CPred<"$_self.isa<StructType>()">,
+                "Test struct type">;
+
+// Provide a definition of the types that are used within the Test dialect.
+def Test_Type : AnyTypeOf<[F64Tensor, Test_StructType]>;
+
 // Here Pure trait meaning the Op has no side effects, so can be removed if not accessed.
 def Test_ConstantOp : Test_Op<"constant", [Pure]> {
     let summary = "Constant operation, defined using function: (Unit -> T) ~ T.";
@@ -42,6 +52,8 @@ def Test_ConstantOp : Test_Op<"constant", [Pure]> {
         // specified declaration, but we need to give the implementation for this function.
         OpBuilder<(ins "double":$value)> 
     ];
+
+    let hasFolder = 1;
 }
 
 //===----------------------------------------------------------------------===//
@@ -78,7 +90,7 @@ def FuncOp : Test_Op<"func", [
   let summary = "user defined function operation";
   let description = [{
     The "test.func" operation represents a user defined function. These are
-    callable SSA-region operations that contain toy computations.
+    callable SSA-region operations that contain test computations.
 
     Example:
 
@@ -140,10 +152,10 @@ def GenericCallOp : Test_Op<"generic_call", [DeclareOpInterfaceMethods<CallOpInt
 
   // The generic call operation takes a symbol reference attribute as the
   // callee, and inputs for the call.
-  let arguments = (ins FlatSymbolRefAttr:$callee, Variadic<F64Tensor>:$inputs);
+  let arguments = (ins FlatSymbolRefAttr:$callee, Variadic<Test_Type>:$inputs);
 
   // The generic call operation returns a single value of TensorType.
-  let results = (outs F64Tensor);
+  let results = (outs Test_Type);
 
   // Specialize assembly printing and parsing using a declarative format.
   let assemblyFormat = [{
@@ -246,7 +258,7 @@ def ReturnOp : Test_Op<"return", [Pure, HasParent<"FuncOp">,
 
   // The return operation takes an optional input operand to return. This
   // value must match the return type of the enclosing function.
-  let arguments = (ins Variadic<F64Tensor>:$input);
+  let arguments = (ins Variadic<Test_Type>:$input);
 
   // The return operation only emits the input in the format if it is present.
   let assemblyFormat = "($input^ `:` type($input))? attr-dict ";
@@ -313,6 +325,63 @@ def CastOp : Test_Op<"cast", [
   let arguments = (ins F64Tensor:$input);
   let results = (outs F64Tensor:$output);
   let assemblyFormat = "$input attr-dict `:` type($input) `to` type($output)";
+}
+
+//===----------------------------------------------------------------------===//
+// StructConstantOp
+//===----------------------------------------------------------------------===//
+
+def StructConstantOp : Test_Op<"struct_constant", [ConstantLike, Pure]> {
+  let summary = "struct constant";
+  let description = [{
+    Constant operation turns a literal struct value into an SSA value. The data
+    is attached to the operation as an attribute. The struct constant is encoded
+    as an array of other constant values. For example:
+
+    ```mlir
+      %0 = test.struct_constant [
+        dense<[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]> : tensor<2x3xf64>
+      ] : !test.struct<tensor<*xf64>>
+    ```
+  }];
+
+  let arguments = (ins ArrayAttr:$value);
+  let results = (outs Test_StructType:$output);
+
+  let assemblyFormat = "$value attr-dict `:` type($output)";
+
+  // Indicate that additional verification for this operation is necessary.
+  let hasVerifier = 1;
+  let hasFolder = 1;
+}
+
+//===----------------------------------------------------------------------===//
+// StructAccessOp
+//===----------------------------------------------------------------------===//
+
+def StructAccessOp : Test_Op<"struct_access", [Pure]> {
+  let summary = "struct access";
+  let description = [{
+    Access the Nth element of a value returning a struct type.
+  }];
+
+  let arguments = (ins Test_StructType:$input, I64Attr:$index);
+  let results = (outs Test_Type:$output);
+
+  let assemblyFormat = [{
+    $input `[` $index `]` attr-dict `:` type($input) `->` type($output)
+  }];
+
+  // Allow building a StructAccessOp with just a struct value and an index.
+  let builders = [
+    OpBuilder<(ins "Value":$input, "size_t":$index)>
+  ];
+
+  // Indicate that additional verification for this operation is necessary.
+  let hasVerifier = 1;
+
+  // Set the folder bit so that we can fold constant accesses.
+  let hasFolder = 1;
 }
 
 

@@ -13,6 +13,14 @@ def Test_Dialect : Dialect {
         This is really just a dialect to get myself familiar with working with 1. CMake, and 
         LLVM's tooling around it, 2. feel for MLIR's structure and philosophies.
     }];
+
+    // We set this bit to generate a declaration of the `materializeConstant`
+    // method so that we can materialize constants for our toy operations.
+    let hasConstantMaterializer = 1;
+
+    // We set this bit to generate the declarations for the dialect's type parsing
+    // and printing hooks.
+    let useDefaultTypePrinterParser = 1;
 }
 
 #endif // TEST_DIALET

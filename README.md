@@ -41,6 +41,7 @@ The above code will need to be written separately.
     2. Rewrite patterns. Specifies how to transform from source to target language
     3. Type converter: convert types of block arguments
     * The rewriter will then apply the transformations until the "illegal" language no longer exists
+* Round trip: source to target and the back to source - a good check to see if the target models the source correctly
 * Mixing dialects. In a framework where we have multiple languages that can be mixed, the construct's interactions needs to be handled. The MLIR documentation suggests 3 ways:
     1. Generate a `load` function to turn the source dialect operations we want ot keep into a `value` in the target dialect.
     2. Create a version of the source dialect operation in the target dialect.
